@@ -4,25 +4,21 @@
 
 ## Скриншоты
 
-### Главное меню
+<p align="center">
+  <img src="docs/screenshots/main-menu.png" alt="Главное меню" width="18%" />
+  <img src="docs/screenshots/training-mode.png" alt="Выбор режима тренировки" width="18%" />
+  <img src="docs/screenshots/answer-mode.png" alt="Выбор формата ответа" width="18%" />
+  <img src="docs/screenshots/settings-screen.png" alt="Настройки" width="18%" />
+  <img src="docs/screenshots/help-screen.png" alt="Помощь" width="18%" />
+</p>
 
-![Главное меню](docs/screenshots/main-menu.png)
-
-### Выбор режима тренировки
-
-![Выбор режима тренировки](docs/screenshots/training-mode.png)
-
-### Выбор формата ответа
-
-![Выбор формата ответа](docs/screenshots/answer-mode.png)
-
-### Настройки
-
-![Экран настроек](docs/screenshots/settings-screen.png)
-
-### Помощь
-
-![Экран помощи](docs/screenshots/help-screen.png)
+<p align="center">
+  <sub><b>Главное меню</b></sub> ·
+  <sub><b>Режим тренировки</b></sub> ·
+  <sub><b>Формат ответа</b></sub> ·
+  <sub><b>Настройки</b></sub> ·
+  <sub><b>Помощь</b></sub>
+</p>
 
 ## Что умеет
 
