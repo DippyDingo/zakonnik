@@ -43,14 +43,18 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Начать обучение", callback_data="menu:start"),
-                InlineKeyboardButton("Выбрать главу УК", callback_data="menu:chapters"),
+                InlineKeyboardButton("🎯 Начать тренировку", callback_data="menu:start"),
+                InlineKeyboardButton("▶️ Продолжить", callback_data="menu:continue"),
             ],
             [
-                InlineKeyboardButton("Продолжить обучение", callback_data="menu:continue"),
-                InlineKeyboardButton("Моя статистика", callback_data="menu:stats"),
+                InlineKeyboardButton("🔁 Ревизия", callback_data="menu:review"),
+                InlineKeyboardButton("🗂️ Выбрать главы", callback_data="menu:chapters"),
             ],
-            [InlineKeyboardButton("Настройки", callback_data="menu:settings")],
+            [
+                InlineKeyboardButton("📊 Статистика", callback_data="menu:stats"),
+                InlineKeyboardButton("⚙️ Настройки", callback_data="menu:settings"),
+            ],
+            [InlineKeyboardButton("❓ Помощь", callback_data="menu:help")],
         ]
     )
 
@@ -59,10 +63,10 @@ def start_kind_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Обучение", callback_data="sessionkind:study"),
-                InlineKeyboardButton("Ревизия", callback_data="sessionkind:review"),
+                InlineKeyboardButton("🎓 Обучение", callback_data="sessionkind:study"),
+                InlineKeyboardButton("🔁 Ревизия", callback_data="sessionkind:review"),
             ],
-            [InlineKeyboardButton("Назад", callback_data="menu:root")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="menu:root")],
         ]
     )
 
@@ -70,29 +74,29 @@ def start_kind_keyboard() -> InlineKeyboardMarkup:
 def training_mode_keyboard(session_mode: str, settings: dict[str, Any]) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton("Обычные карточки", callback_data=f"training:{session_mode}:flashcard"),
-            InlineKeyboardButton("Тест с вариантами", callback_data=f"training:{session_mode}:multiple_choice"),
+            InlineKeyboardButton("🧠 Обычные карточки", callback_data=f"training:{session_mode}:flashcard"),
+            InlineKeyboardButton("📝 Тест с вариантами", callback_data=f"training:{session_mode}:multiple_choice"),
         ],
-        [InlineKeyboardButton("Верно / неверно", callback_data=f"training:{session_mode}:true_false")],
+        [InlineKeyboardButton("⚖️ Верно / неверно", callback_data=f"training:{session_mode}:true_false")],
     ]
     if settings["mixed_mode_enabled"]:
         rows.append(
-            [InlineKeyboardButton("Смешанный режим", callback_data=f"training:{session_mode}:mixed")]
+            [InlineKeyboardButton("🎲 Смешанный режим", callback_data=f"training:{session_mode}:mixed")]
         )
-    rows.append([InlineKeyboardButton("Назад", callback_data="menu:start")])
+    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data="menu:start")])
     return InlineKeyboardMarkup(rows)
 
 
 def settings_keyboard(settings: dict[str, Any]) -> InlineKeyboardMarkup:
-    hints_label = "Подсказки: вкл" if settings["hints_enabled"] else "Подсказки: выкл"
-    mixed_label = "Смешанный режим: вкл" if settings["mixed_mode_enabled"] else "Смешанный режим: выкл"
+    hints_label = "💡 Подсказки: вкл" if settings["hints_enabled"] else "💡 Подсказки: выкл"
+    mixed_label = "🎲 Смешанный режим: вкл" if settings["mixed_mode_enabled"] else "🎲 Смешанный режим: выкл"
     options_label = (
-        "Варианты ответа: вкл" if settings["options_enabled"] else "Варианты ответа: выкл"
+        "📝 Варианты ответа: вкл" if settings["options_enabled"] else "📝 Варианты ответа: выкл"
     )
     reminder_label = (
-        f"Напоминания: {settings['reminder_time']}"
+        f"🔔 Напоминания: {settings['reminder_time']}"
         if settings["reminder_enabled"]
-        else "Напоминания: выкл"
+        else "🔔 Напоминания: выкл"
     )
     preferred_label = TRAINING_MODE_LABELS.get(
         settings["preferred_training_mode"],
@@ -100,14 +104,14 @@ def settings_keyboard(settings: dict[str, Any]) -> InlineKeyboardMarkup:
     )
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton(f"Режим по умолчанию: {preferred_label}", callback_data="settings:preferred_mode")],
+            [InlineKeyboardButton(f"🎯 Режим по умолчанию: {preferred_label}", callback_data="settings:preferred_mode")],
             [InlineKeyboardButton(mixed_label, callback_data="settings:mixed")],
             [InlineKeyboardButton(options_label, callback_data="settings:options_default")],
-            [InlineKeyboardButton("Карточек за сессию", callback_data="settings:size")],
+            [InlineKeyboardButton("📚 Карточек за сессию", callback_data="settings:size")],
             [InlineKeyboardButton(hints_label, callback_data="settings:hints")],
             [InlineKeyboardButton(reminder_label, callback_data="settings:reminders")],
-            [InlineKeyboardButton("Сбросить прогресс", callback_data="settings:reset")],
-            [InlineKeyboardButton("Назад", callback_data="menu:root")],
+            [InlineKeyboardButton("♻️ Сбросить прогресс", callback_data="settings:reset")],
+            [InlineKeyboardButton("⬅️ Назад", callback_data="menu:root")],
         ]
     )
 
@@ -121,7 +125,7 @@ def preferred_mode_keyboard(current_mode: str, mixed_enabled: bool) -> InlineKey
         rows.append(
             [InlineKeyboardButton(f"{prefix}{TRAINING_MODE_LABELS[mode]}", callback_data=f"pref:set:{mode}")]
         )
-    rows.append([InlineKeyboardButton("Назад", callback_data="menu:settings")])
+    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data="menu:settings")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -130,7 +134,7 @@ def session_size_keyboard(current_size: int) -> InlineKeyboardMarkup:
     for size in (5, 10, 15, 20):
         prefix = "• " if size == current_size else ""
         rows.append([InlineKeyboardButton(f"{prefix}{size} карточек", callback_data=f"size:set:{size}")])
-    rows.append([InlineKeyboardButton("Назад", callback_data="menu:settings")])
+    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data="menu:settings")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -138,7 +142,7 @@ def reminder_keyboard(settings: dict[str, Any]) -> InlineKeyboardMarkup:
     rows = [
         [
             InlineKeyboardButton(
-                "Выключить" if settings["reminder_enabled"] else "Включить",
+                "🔕 Выключить" if settings["reminder_enabled"] else "🔔 Включить",
                 callback_data="reminder:toggle",
             )
         ],
@@ -152,7 +156,7 @@ def reminder_keyboard(settings: dict[str, Any]) -> InlineKeyboardMarkup:
             InlineKeyboardButton("19:00", callback_data="reminder:time:19-00"),
             InlineKeyboardButton("21:00", callback_data="reminder:time:21-00"),
         ],
-        [InlineKeyboardButton("Назад", callback_data="menu:settings")],
+        [InlineKeyboardButton("⬅️ Назад", callback_data="menu:settings")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -171,11 +175,11 @@ def reset_keyboard() -> InlineKeyboardMarkup:
 def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str]) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for chapter in chapters:
-        marker = "✅ " if chapter["chapter_code"] in selected else ""
+        marker = "✅" if chapter["chapter_code"] in selected else "◻️"
         rows.append(
             [
                 InlineKeyboardButton(
-                    f"{marker}Глава {chapter['chapter_code']}. {chapter['chapter_title']}",
+                    f"{marker} Глава {chapter['chapter_code']}. {chapter['chapter_title']}",
                     callback_data=f"chapter:toggle:{chapter['chapter_code']}",
                 )
             ]
@@ -183,10 +187,13 @@ def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str]) -> Inl
     rows.extend(
         [
             [
-                InlineKeyboardButton("Выбрать все", callback_data="chapter:all"),
-                InlineKeyboardButton("Очистить", callback_data="chapter:clear"),
+                InlineKeyboardButton("✅ Выбрать все", callback_data="chapter:all"),
+                InlineKeyboardButton("🧹 Очистить", callback_data="chapter:clear"),
             ],
-            [InlineKeyboardButton("В главное меню", callback_data="menu:root")],
+            [
+                InlineKeyboardButton("💾 Сохранить", callback_data="chapter:save"),
+                InlineKeyboardButton("⬅️ Назад", callback_data="menu:root"),
+            ],
         ]
     )
     return InlineKeyboardMarkup(rows)
@@ -196,10 +203,10 @@ def finish_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Новая сессия", callback_data="menu:start"),
-                InlineKeyboardButton("Статистика", callback_data="menu:stats"),
+                InlineKeyboardButton("🎯 Новая тренировка", callback_data="menu:start"),
+                InlineKeyboardButton("📊 Статистика", callback_data="menu:stats"),
             ],
-            [InlineKeyboardButton("В меню", callback_data="menu:root")],
+            [InlineKeyboardButton("🏠 В меню", callback_data="menu:root")],
         ]
     )
 
@@ -227,8 +234,8 @@ class CriminalCodeBot:
     async def post_init(self, application: Application) -> None:
         await application.bot.set_my_commands(
             [
-                ("start", "Запустить бота"),
-                ("menu", "Открыть главное меню"),
+                ("start", "Открыть бот"),
+                ("menu", "Главное меню"),
             ]
         )
         for row in self.db.list_reminder_users():
@@ -243,18 +250,19 @@ class CriminalCodeBot:
         if update.effective_user is None or update.effective_chat is None:
             return
         self.db.upsert_user(update.effective_user)
-        text = (
-            "Бот помогает учить УК РФ по карточкам разных форматов.\n\n"
-            "Можно работать в обычном режиме, решать тесты с вариантами ответа, "
-            "проходить задания формата «верно / неверно» и запускать смешанные сессии."
+        await update.effective_chat.send_message(
+            text=self.render_home_text(update.effective_user.id),
+            reply_markup=main_menu_keyboard(),
         )
-        await update.effective_chat.send_message(text=text, reply_markup=main_menu_keyboard())
 
     async def menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.effective_user is None or update.effective_chat is None:
             return
         self.db.upsert_user(update.effective_user)
-        await update.effective_chat.send_message("Главное меню:", reply_markup=main_menu_keyboard())
+        await update.effective_chat.send_message(
+            self.render_home_text(update.effective_user.id),
+            reply_markup=main_menu_keyboard(),
+        )
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
@@ -268,14 +276,22 @@ class CriminalCodeBot:
         try:
             if data == "menu:root":
                 await query.answer()
-                await query.edit_message_text("Главное меню:", reply_markup=main_menu_keyboard())
+                await query.edit_message_text(
+                    self.render_home_text(user.id),
+                    reply_markup=main_menu_keyboard(),
+                )
                 return
             if data == "menu:start":
                 await query.answer()
                 await query.edit_message_text(
-                    "Выберите, что хотите запустить:",
+                    "🎯 Начать тренировку\n\n"
+                    "Выберите режим: обучение для нового материала или ревизию для повторения.",
                     reply_markup=start_kind_keyboard(),
                 )
+                return
+            if data == "menu:review":
+                await query.answer()
+                await self.show_training_modes(query, "review")
                 return
             if data == "menu:continue":
                 await query.answer()
@@ -292,6 +308,10 @@ class CriminalCodeBot:
             if data == "menu:settings":
                 await query.answer()
                 await self.show_settings(query)
+                return
+            if data == "menu:help":
+                await query.answer()
+                await self.show_help(query)
                 return
             if data.startswith("sessionkind:"):
                 await query.answer()
@@ -315,9 +335,16 @@ class CriminalCodeBot:
                 await self.show_chapters(query)
                 return
             if data == "chapter:clear":
-                await query.answer("Список глав очищен")
+                await query.answer("Выбор глав очищен")
                 self.db.set_selected_chapters(user.id, [])
                 await self.show_chapters(query)
+                return
+            if data == "chapter:save":
+                await query.answer("Главы сохранены")
+                await query.edit_message_text(
+                    self.render_home_text(user.id),
+                    reply_markup=main_menu_keyboard(),
+                )
                 return
             if data == "card:reveal":
                 await query.answer()
@@ -330,11 +357,11 @@ class CriminalCodeBot:
                 await self.skip_card(query)
                 return
             if data == "answer:know":
-                await query.answer("Отмечено как правильный ответ")
+                await query.answer("Ответ засчитан")
                 await self.process_binary_answer(query, is_correct=True)
                 return
             if data == "answer:dont":
-                await query.answer("Карточка вернется на повторение")
+                await query.answer("Карточка вернётся в повторение")
                 await self.process_binary_answer(query, is_correct=False)
                 return
             if data.startswith("answer:option:"):
@@ -350,7 +377,8 @@ class CriminalCodeBot:
                 await query.answer()
                 self.db.clear_session(user.id)
                 await query.edit_message_text(
-                    "Сессия завершена. Можно запустить новую или открыть статистику.",
+                    "🏁 Сессия завершена\n\n"
+                    "Можно начать новую тренировку, открыть статистику или вернуться в меню.",
                     reply_markup=finish_keyboard(),
                 )
                 return
@@ -358,7 +386,8 @@ class CriminalCodeBot:
                 await query.answer()
                 settings = self.db.get_user_settings(user.id)
                 await query.edit_message_text(
-                    "Выберите предпочитаемый режим обучения:",
+                    "🎯 Режим по умолчанию\n\n"
+                    "Этот формат бот будет предлагать первым.",
                     reply_markup=preferred_mode_keyboard(
                         settings["preferred_training_mode"],
                         settings["mixed_mode_enabled"],
@@ -368,7 +397,7 @@ class CriminalCodeBot:
             if data.startswith("pref:set:"):
                 training_mode = data.rsplit(":", maxsplit=1)[1]
                 self.db.set_preferred_training_mode(user.id, training_mode)
-                await query.answer("Режим по умолчанию обновлен")
+                await query.answer("Режим по умолчанию обновлён")
                 await self.show_settings(query)
                 return
             if data == "settings:mixed":
@@ -377,7 +406,7 @@ class CriminalCodeBot:
                 self.db.set_mixed_mode_enabled(user.id, new_state)
                 if not new_state and settings["preferred_training_mode"] == "mixed":
                     self.db.set_preferred_training_mode(user.id, "flashcard")
-                await query.answer("Настройка смешанного режима обновлена")
+                await query.answer("Смешанный режим обновлён")
                 await self.show_settings(query)
                 return
             if data == "settings:options_default":
@@ -390,12 +419,12 @@ class CriminalCodeBot:
                 await query.answer()
                 settings = self.db.get_user_settings(user.id)
                 await query.edit_message_text(
-                    "Сколько карточек показывать за одну сессию?",
+                    "📚 Размер сессии\n\nСколько карточек удобно проходить за один подход?",
                     reply_markup=session_size_keyboard(settings["session_size"]),
                 )
                 return
             if data.startswith("size:set:"):
-                await query.answer("Размер сессии обновлен")
+                await query.answer("Размер сессии обновлён")
                 size = int(data.rsplit(":", maxsplit=1)[1])
                 self.db.set_session_size(user.id, size)
                 await self.show_settings(query)
@@ -451,7 +480,9 @@ class CriminalCodeBot:
             if data == "settings:reset":
                 await query.answer()
                 await query.edit_message_text(
-                    "Сбросить весь прогресс по карточкам, истории ответов и текущей сессии?",
+                    "♻️ Сброс прогресса\n\n"
+                    "Будут очищены ответы, прогресс по карточкам и текущая сессия.\n"
+                    "Главы и общие настройки сохранятся.",
                     reply_markup=reset_keyboard(),
                 )
                 return
@@ -459,9 +490,10 @@ class CriminalCodeBot:
                 self.db.reset_progress(user.id)
                 await query.answer("Прогресс сброшен")
                 await query.edit_message_text(
-                    "Прогресс обнулен. Выбранные главы и остальные настройки сохранены.",
+                    "Готово: прогресс обнулён.\n\n"
+                    "Выбранные главы и остальные настройки сохранены.",
                     reply_markup=InlineKeyboardMarkup(
-                        [[InlineKeyboardButton("В настройки", callback_data="menu:settings")]]
+                        [[InlineKeyboardButton("⚙️ В настройки", callback_data="menu:settings")]]
                     ),
                 )
                 return
@@ -469,13 +501,14 @@ class CriminalCodeBot:
             await query.answer("Неизвестное действие", show_alert=True)
         except Exception as exc:
             LOGGER.exception("Ошибка обработки callback %s", data, exc_info=exc)
-            await query.answer("Произошла ошибка. Попробуйте еще раз.", show_alert=True)
+            await query.answer("Что-то пошло не так. Попробуйте ещё раз.", show_alert=True)
 
     async def show_training_modes(self, query, session_mode: str) -> None:
         settings = self.db.get_user_settings(query.from_user.id)
         title = "обучения" if session_mode == "study" else "ревизии"
         await query.edit_message_text(
-            f"Выберите формат {title}:",
+            f"🧩 Формат {title}\n\n"
+            "Выберите, как именно хотите отвечать на карточки.",
             reply_markup=training_mode_keyboard(session_mode, settings),
         )
 
@@ -484,9 +517,18 @@ class CriminalCodeBot:
         settings = self.db.get_user_settings(user_id)
         chapters = [dict(row) for row in self.db.list_chapters()]
         selected = settings["selected_chapters"]
-        subtitle = "Если главы не выбраны, бот использует все доступные карточки."
+        count = len(selected)
+        if selected:
+            preview = ", ".join(f"гл. {code}" for code in selected[:5])
+            if len(selected) > 5:
+                preview += ", ..."
+        else:
+            preview = "все доступные главы"
         await query.edit_message_text(
-            f"Выберите одну или несколько глав.\n\n{subtitle}",
+            "🗂️ Выбор глав\n\n"
+            f"Выбрано: {count if count else 'все'}\n"
+            f"Сейчас в подборке: {preview}\n\n"
+            "Отметьте нужные главы. Если ничего не выбрано, бот использует все карточки.",
             reply_markup=chapter_keyboard(chapters, selected),
         )
 
@@ -511,16 +553,17 @@ class CriminalCodeBot:
             TRAINING_MODE_LABELS["mixed"],
         )
         text = (
-            "Настройки обучения:\n\n"
+            "⚙️ Настройки\n\n"
+            "Подстройте темп и формат обучения под себя.\n\n"
             f"Режим по умолчанию: {preferred_label}\n"
-            f"Смешанный режим: {'включен' if settings['mixed_mode_enabled'] else 'выключен'}\n"
-            f"Варианты ответа по умолчанию: {'включены' if settings['options_enabled'] else 'выключены'}\n"
+            f"Смешанный режим: {'включён' if settings['mixed_mode_enabled'] else 'выключен'}\n"
+            f"Варианты ответа: {'включены' if settings['options_enabled'] else 'выключены'}\n"
             f"Карточек за сессию: {settings['session_size']}\n"
             f"Подсказки: {'включены' if settings['hints_enabled'] else 'выключены'}\n"
             f"Напоминания: {'включены' if settings['reminder_enabled'] else 'выключены'}\n"
-            f"Цель в день: {settings['daily_target']}\n"
+            f"Ежедневная цель: {settings['daily_target']}\n"
             f"Время напоминания: {settings['reminder_time']}\n"
-            f"Выбранные главы: {selected_text}"
+            f"Главы в фильтре: {selected_text}"
         )
         await query.edit_message_text(text, reply_markup=settings_keyboard(settings))
 
@@ -528,37 +571,41 @@ class CriminalCodeBot:
         user_id = query.from_user.id
         stats = self.db.get_stats(user_id)
         selected_text = ", ".join(stats["selected_chapters"]) if stats["selected_chapters"] else "все"
+        total_answers = stats["correct_answers"] + stats["incorrect_answers"]
+        success_rate = round((stats["correct_answers"] / total_answers) * 100) if total_answers else 0
         chapter_lines = []
         for item in stats["chapters"]:
+            progress = round((item["mastered_cards"] / item["total_cards"]) * 100) if item["total_cards"] else 0
             chapter_lines.append(
-                f"- Глава {item['chapter_code']}: {item['mastered_cards']}/{item['total_cards']} выучено"
+                f"Глава {item['chapter_code']}: {item['mastered_cards']}/{item['total_cards']} · {progress}%"
             )
         if not chapter_lines:
-            chapter_lines.append("- Нет данных по выбранным главам")
+            chapter_lines.append("Нет данных по выбранным главам")
 
         text = (
-            "Моя статистика:\n\n"
-            f"Выбранные главы: {selected_text}\n"
-            f"Карточек всего: {stats['total_cards']}\n"
-            f"Выучено: {stats['mastered']}\n"
+            "📊 Моя статистика\n\n"
+            "Общий прогресс\n"
+            f"Всего карточек: {stats['total_cards']}\n"
+            f"Изучено: {stats['mastered']}\n"
             f"В процессе: {stats['learning']}\n"
-            f"Новых: {stats['new_cards']}\n"
-            f"Правильных ответов: {stats['correct_answers']}\n"
             f"Ошибок: {stats['incorrect_answers']}\n"
+            f"Ждут ревизии: {stats['review_ready']}\n\n"
+            "Результаты\n"
+            f"Правильных ответов: {stats['correct_answers']}\n"
+            f"Успешность: {success_rate}%\n"
             f"Баллы: {stats['points']}\n"
             f"Текущая серия: {stats['streak']}\n"
-            f"Лучшая серия: {stats['best_streak']}\n"
-            f"Сегодня выполнено: {stats['today_correct']}/{stats['daily_target']}\n"
-            f"Режим по умолчанию: {TRAINING_MODE_LABELS.get(stats['preferred_training_mode'], TRAINING_MODE_LABELS['mixed'])}\n"
-            f"Смешанный режим: {'вкл' if stats['mixed_mode_enabled'] else 'выкл'}\n"
-            f"Варианты ответа: {'вкл' if stats['options_enabled'] else 'выкл'}\n\n"
-            "Прогресс по главам:\n"
+            f"Лучшая серия: {stats['best_streak']}\n\n"
+            "Сегодня\n"
+            f"Выполнено: {stats['today_correct']}/{stats['daily_target']}\n"
+            f"Выбранные главы: {selected_text}\n\n"
+            "Прогресс по главам\n"
             + "\n".join(chapter_lines)
         )
         await query.edit_message_text(
             text,
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("В меню", callback_data="menu:root")]]
+                [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
             ),
         )
 
@@ -571,10 +618,10 @@ class CriminalCodeBot:
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
-                            InlineKeyboardButton("Выбрать главы", callback_data="menu:chapters"),
-                            InlineKeyboardButton("Другой формат", callback_data=f"sessionkind:{session_mode}"),
+                            InlineKeyboardButton("🗂️ Выбрать главы", callback_data="menu:chapters"),
+                            InlineKeyboardButton("🔄 Другой формат", callback_data=f"sessionkind:{session_mode}"),
                         ],
-                        [InlineKeyboardButton("В меню", callback_data="menu:root")],
+                        [InlineKeyboardButton("🏠 В меню", callback_data="menu:root")],
                     ]
                 ),
             )
@@ -601,7 +648,7 @@ class CriminalCodeBot:
                 await query.edit_message_text(
                     "Активная сессия уже завершена.",
                     reply_markup=InlineKeyboardMarkup(
-                        [[InlineKeyboardButton("В меню", callback_data="menu:root")]]
+                        [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
                     ),
                 )
                 return
@@ -611,7 +658,7 @@ class CriminalCodeBot:
         payload = session["current_payload"]
         if payload is None:
             await query.edit_message_text(
-                "В сессии не осталось карточек.",
+                "В этой сессии карточки закончились.",
                 reply_markup=finish_keyboard(),
             )
             return
@@ -625,47 +672,54 @@ class CriminalCodeBot:
             return
 
         settings = self.db.get_user_settings(query.from_user.id)
-        text, keyboard = self.render_card(card, payload, session["mode"], settings)
+        card_progress = self.db.get_card_progress(query.from_user.id, card["id"])
+        text, keyboard = self.render_card(card, payload, session, settings, card_progress)
         await query.edit_message_text(text, reply_markup=keyboard)
 
     def render_card(
         self,
         card,
         payload: dict[str, Any],
-        session_mode: str,
+        session: dict[str, Any],
         settings: dict[str, Any],
+        card_progress: dict[str, Any],
     ) -> tuple[str, InlineKeyboardMarkup]:
         presentation = payload["presentation_type"]
+        total_cards = max(int(session.get("total_cards", 0) or 0), 1)
+        answered_cards = int(session.get("answered_cards", 0) or 0)
+        current_number = min(answered_cards + 1, total_cards)
+        reveal_article = bool(payload.get("revealed"))
+        article_line = f"Статья: {card['article']}" if reveal_article else "Статья: скрыта до ответа"
         header = (
-            f"Режим: {SESSION_MODE_LABELS.get(session_mode, 'Обучение')}\n"
-            f"Формат: {PRESENTATION_LABELS.get(presentation, 'Карточка')}\n"
+            f"{self.session_mode_icon(session['mode'])} {SESSION_MODE_LABELS.get(session['mode'], 'Обучение')} · карточка {current_number}/{total_cards}\n"
+            f"{self.progress_bar(current_number, total_cards)}\n\n"
             f"Глава {card['chapter_code']}. {card['chapter_title']}\n"
-            f"Статья: {card['article']}"
+            f"{article_line}\n"
+            f"Тип: {PRESENTATION_LABELS.get(presentation, 'Карточка')}\n"
+            f"Сложность: {self.difficulty_label(card['difficulty'])}\n"
+            f"Статус: {self.card_status_label(card_progress['status'], card_progress['correct_streak'])}\n"
+            f"Прогресс карточки: {min(card_progress['correct_streak'], self.settings.mastered_streak)}/{self.settings.mastered_streak}"
         )
 
         if presentation in {"multiple_choice", "scenario_choice"}:
-            options_lines = [
-                f"{index + 1}. {option}" for index, option in enumerate(payload.get("options", []))
-            ]
             prompt_label = "Ситуация" if presentation == "scenario_choice" else "Вопрос"
             text = (
                 f"{header}\n\n"
-                f"{prompt_label}:\n{card['question']}\n\n"
-                "Варианты ответа:\n"
-                + "\n".join(options_lines)
+                f"— {prompt_label}\n{card['question']}\n\n"
+                "Выберите вариант ниже."
             )
             return text, self.choice_keyboard(payload.get("options", []), settings["hints_enabled"], bool(card["hint"]))
 
         if presentation == "true_false":
             text = (
                 f"{header}\n\n"
-                f"Утверждение:\n{card['question']}\n\n"
+                f"— Утверждение\n{card['question']}\n\n"
                 "Выберите, верно это утверждение или нет."
             )
             return text, self.true_false_keyboard(settings["hints_enabled"], bool(card["hint"]))
 
         prompt_label = "Ситуация" if presentation == "scenario" else "Вопрос"
-        text = f"{header}\n\n{prompt_label}:\n{card['question']}"
+        text = f"{header}\n\n— {prompt_label}\n{card['question']}"
         if payload.get("revealed"):
             answer_block = self.compose_answer_block(card)
             text = f"{text}\n\n{answer_block}"
@@ -684,17 +738,17 @@ class CriminalCodeBot:
     ) -> InlineKeyboardMarkup:
         rows: list[list[InlineKeyboardButton]] = []
         if not revealed:
-            rows.append([InlineKeyboardButton("Показать ответ", callback_data="card:reveal")])
+            rows.append([InlineKeyboardButton("👀 Показать ответ", callback_data="card:reveal")])
         if hints_enabled and has_hint:
-            rows.append([InlineKeyboardButton("Подсказка", callback_data="card:hint")])
+            rows.append([InlineKeyboardButton("💡 Подсказка", callback_data="card:hint")])
         rows.append(
             [
-                InlineKeyboardButton("Знаю", callback_data="answer:know"),
-                InlineKeyboardButton("Не знаю", callback_data="answer:dont"),
+                InlineKeyboardButton("✅ Знаю", callback_data="answer:know"),
+                InlineKeyboardButton("🤔 Не знаю", callback_data="answer:dont"),
             ]
         )
-        rows.append([InlineKeyboardButton("Пропустить", callback_data="card:skip")])
-        rows.append([InlineKeyboardButton("В меню", callback_data="menu:root")])
+        rows.append([InlineKeyboardButton("⏭️ Пропустить", callback_data="card:skip")])
+        rows.append([InlineKeyboardButton("🏠 В меню", callback_data="menu:root")])
         return InlineKeyboardMarkup(rows)
 
     def choice_keyboard(
@@ -708,22 +762,22 @@ class CriminalCodeBot:
             for index, option in enumerate(options)
         ]
         if hints_enabled and has_hint:
-            rows.append([InlineKeyboardButton("Подсказка", callback_data="card:hint")])
-        rows.append([InlineKeyboardButton("Пропустить", callback_data="card:skip")])
-        rows.append([InlineKeyboardButton("В меню", callback_data="menu:root")])
+            rows.append([InlineKeyboardButton("💡 Подсказка", callback_data="card:hint")])
+        rows.append([InlineKeyboardButton("⏭️ Пропустить", callback_data="card:skip")])
+        rows.append([InlineKeyboardButton("🏠 В меню", callback_data="menu:root")])
         return InlineKeyboardMarkup(rows)
 
     def true_false_keyboard(self, hints_enabled: bool, has_hint: bool) -> InlineKeyboardMarkup:
         rows = [
             [
-                InlineKeyboardButton("Верно", callback_data="answer:option:0"),
-                InlineKeyboardButton("Неверно", callback_data="answer:option:1"),
+                InlineKeyboardButton("✅ Верно", callback_data="answer:option:0"),
+                InlineKeyboardButton("❌ Неверно", callback_data="answer:option:1"),
             ]
         ]
         if hints_enabled and has_hint:
-            rows.append([InlineKeyboardButton("Подсказка", callback_data="card:hint")])
-        rows.append([InlineKeyboardButton("Пропустить", callback_data="card:skip")])
-        rows.append([InlineKeyboardButton("В меню", callback_data="menu:root")])
+            rows.append([InlineKeyboardButton("💡 Подсказка", callback_data="card:hint")])
+        rows.append([InlineKeyboardButton("⏭️ Пропустить", callback_data="card:skip")])
+        rows.append([InlineKeyboardButton("🏠 В меню", callback_data="menu:root")])
         return InlineKeyboardMarkup(rows)
 
     async def reveal_answer(self, query) -> None:
@@ -767,7 +821,7 @@ class CriminalCodeBot:
             await query.edit_message_text(
                 "Активная сессия не найдена.",
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("В меню", callback_data="menu:root")]]
+                    [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
                 ),
             )
             return
@@ -792,7 +846,7 @@ class CriminalCodeBot:
             await query.edit_message_text(
                 "Активная сессия не найдена.",
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("В меню", callback_data="menu:root")]]
+                    [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
                 ),
             )
             return
@@ -820,7 +874,7 @@ class CriminalCodeBot:
             await query.edit_message_text(
                 "Активная сессия не найдена.",
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("В меню", callback_data="menu:root")]]
+                    [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
                 ),
             )
             return
@@ -848,9 +902,11 @@ class CriminalCodeBot:
             queue=queue,
             mode=session["mode"],
             training_mode=session["training_mode"],
+            answered_cards=session["answered_cards"] + 1,
+            total_cards=session["total_cards"] + (1 if result["status"] != "mastered" else 0),
         )
 
-        title = "Верно" if is_correct else "Нужно повторить"
+        title = "✅ Верно" if is_correct else "📌 Повторим ещё раз"
         text = self.compose_feedback_text(
             card,
             payload,
@@ -866,11 +922,15 @@ class CriminalCodeBot:
     def after_answer_keyboard(self, has_next: bool) -> InlineKeyboardMarkup:
         first_row = [
             InlineKeyboardButton(
-                "Следующая карточка" if has_next else "Завершить сессию",
+                "➡️ Следующая карточка" if has_next else "🏁 Завершить сессию",
                 callback_data="card:next" if has_next else "card:finish",
             )
         ]
-        return InlineKeyboardMarkup([first_row, [InlineKeyboardButton("В меню", callback_data="menu:root")]])
+        rows = [first_row]
+        if has_next:
+            rows.append([InlineKeyboardButton("⏸ Продолжить позже", callback_data="menu:root")])
+        rows.append([InlineKeyboardButton("🏠 В меню", callback_data="menu:root")])
+        return InlineKeyboardMarkup(rows)
 
     def compose_feedback_text(
         self,
@@ -881,11 +941,7 @@ class CriminalCodeBot:
         selected_option: int | None,
         is_correct: bool,
     ) -> str:
-        status_text = {
-            "new": "новая",
-            "learning": "в процессе",
-            "mastered": "выучена",
-        }[result["status"]]
+        status_text = self.card_status_label(result["status"], result["card_streak"])
         answer_block = self.compose_answer_block(card)
         choice_block = ""
         options = payload.get("options", [])
@@ -898,25 +954,33 @@ class CriminalCodeBot:
                 f"Правильный вариант: {correct_text}\n\n"
             )
 
-        points_text = f"Очки: +{result['awarded_points']}"
+        points_text = f"Баллы: +{result['awarded_points']}"
         if result["bonus"]:
             points_text += f" (включая бонус +{result['bonus']})"
+
+        if result["status"] == "mastered":
+            action_text = "Что произошло: карточка отмечена как выученная."
+        elif is_correct:
+            action_text = "Что произошло: прогресс вырос, карточка останется в повторении до закрепления."
+        else:
+            action_text = "Что произошло: карточка возвращена в повторение."
 
         return (
             f"{choice_block}"
             f"{answer_block}\n\n"
+            f"{action_text}\n"
             f"Статус карточки: {status_text}\n"
             f"Верных подряд по карточке: {result['card_streak']}/{self.settings.mastered_streak}\n"
             f"{points_text}\n"
-            f"Серия пользователя: {result['user_streak']}"
+            f"Текущая серия: {result['user_streak']}"
         )
 
     def compose_answer_block(self, card) -> str:
         explanation = card["explanation"] or card["answer"]
         example = f"\nПример: {card['example']}" if card["example"] else ""
         return (
-            f"Правильный ответ:\n{card['answer']}\n\n"
-            f"Пояснение:\n{explanation}{example}"
+            f"Правильный ответ\n{card['answer']}\n\n"
+            f"Коротко\n{explanation}{example}"
         )
 
     async def move_to_next_card(self, query) -> None:
@@ -925,7 +989,8 @@ class CriminalCodeBot:
         if session is None:
             self.db.clear_session(user_id)
             await query.edit_message_text(
-                "Сессия завершена. Все карточки из текущей колоды обработаны.",
+                "🏁 Сессия завершена\n\n"
+                "Все карточки из текущей подборки обработаны.",
                 reply_markup=finish_keyboard(),
             )
             return
@@ -934,23 +999,83 @@ class CriminalCodeBot:
     def empty_session_message(self, session_mode: str, training_mode: str) -> str:
         if session_mode == "review":
             return (
-                "Для ревизии пока нет карточек.\n\n"
+                "🔁 Для ревизии пока нет карточек.\n\n"
                 "Сначала пройдите обучение, чтобы появились карточки для повторения."
             )
         return (
-            f"Не нашлось карточек для режима «{TRAINING_MODE_LABELS.get(training_mode, training_mode)}».\n\n"
+            f"Пока не нашлось карточек для режима «{TRAINING_MODE_LABELS.get(training_mode, training_mode)}».\n\n"
             "Проверьте выбранные главы или попробуйте другой формат обучения."
         )
 
     def render_reminder_text(self, settings: dict[str, Any]) -> str:
         status = "включены" if settings["reminder_enabled"] else "выключены"
         return (
-            "Напоминания:\n\n"
+            "🔔 Напоминания\n\n"
             f"Статус: {status}\n"
-            f"Цель в день: {settings['daily_target']} карточек\n"
+            f"Ежедневная цель: {settings['daily_target']} карточек\n"
             f"Время: {settings['reminder_time']}\n\n"
-            "Когда напоминания включены, бот раз в день присылает сообщение о дневной цели."
+            "Бот будет раз в день напоминать о цели и возвращать вас к тренировке."
         )
+
+    async def show_help(self, query) -> None:
+        text = (
+            "❓ Помощь\n\n"
+            "Как начать\n"
+            "1. Выберите главы.\n"
+            "2. Нажмите «Начать тренировку».\n"
+            "3. Выберите удобный режим ответа.\n\n"
+            "Как работают карточки\n"
+            "Обычные карточки помогают вспоминать ответ самостоятельно.\n"
+            "Тесты и режим «Верно / неверно» подходят для быстрой проверки.\n\n"
+            "Что такое ревизия\n"
+            "Ревизия повторяет уже встречавшиеся карточки: с ошибками, в процессе и ранее выученные.\n\n"
+            "Статистика\n"
+            "Показывает общий прогресс, серию, ошибки и количество карточек, которые ждут повторения."
+        )
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("⬅️ Назад", callback_data="menu:root")]]
+            ),
+        )
+
+    def render_home_text(self, user_id: int) -> str:
+        stats = self.db.get_stats(user_id)
+        selected_count = len(stats["selected_chapters"])
+        selected_text = f"{selected_count}" if selected_count else "все"
+        return (
+            "⚖️ Законник\n\n"
+            "Учите главы УК РФ короткими сессиями, повторяйте сложные карточки и отслеживайте прогресс каждый день.\n\n"
+            f"Сегодня: {stats['today_correct']}/{stats['daily_target']} карточек\n"
+            f"Ждут ревизии: {stats['review_ready']}\n"
+            f"Выбрано глав: {selected_text}"
+        )
+
+    def progress_bar(self, current: int, total: int, length: int = 8) -> str:
+        safe_total = max(total, 1)
+        clamped = min(max(current, 0), safe_total)
+        filled = round((clamped / safe_total) * length)
+        return "█" * filled + "░" * (length - filled)
+
+    def difficulty_label(self, value: str | None) -> str:
+        mapping = {
+            "easy": "Лёгкая",
+            "medium": "Средняя",
+            "hard": "Сложная",
+        }
+        return mapping.get((value or "").lower(), "Не указана")
+
+    def card_status_label(self, status: str, streak: int) -> str:
+        if status == "mastered":
+            return "Выучена"
+        if status == "learning" and streak >= max(self.settings.mastered_streak - 1, 1):
+            return "Почти выучена"
+        if status == "learning":
+            return "В процессе"
+        return "Новая"
+
+    def session_mode_icon(self, mode: str) -> str:
+        return "🎓" if mode == "study" else "🔁"
 
     def schedule_reminder(
         self,

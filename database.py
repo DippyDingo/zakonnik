@@ -106,6 +106,8 @@ class Database:
                     current_card_id INTEGER,
                     current_payload_json TEXT,
                     queue_json TEXT NOT NULL DEFAULT '[]',
+                    total_cards INTEGER NOT NULL DEFAULT 0,
+                    answered_cards INTEGER NOT NULL DEFAULT 0,
                     started_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -125,6 +127,8 @@ class Database:
         self._ensure_column("cards", "correct_option", "INTEGER")
         self._ensure_column("session_state", "training_mode", "TEXT NOT NULL DEFAULT 'mixed'")
         self._ensure_column("session_state", "current_payload_json", "TEXT")
+        self._ensure_column("session_state", "total_cards", "INTEGER NOT NULL DEFAULT 0")
+        self._ensure_column("session_state", "answered_cards", "INTEGER NOT NULL DEFAULT 0")
 
     def _ensure_column(self, table: str, column: str, ddl: str) -> None:
         columns = {
@@ -415,6 +419,30 @@ class Database:
             (card_id,),
         ).fetchone()
 
+    def get_card_progress(self, user_id: int, card_id: int) -> dict[str, Any]:
+        row = self.conn.execute(
+            """
+            SELECT
+                status,
+                correct_streak,
+                total_correct,
+                total_incorrect,
+                last_result
+            FROM user_card_progress
+            WHERE user_id = ? AND card_id = ?
+            """,
+            (user_id, card_id),
+        ).fetchone()
+        if row is None:
+            return {
+                "status": "new",
+                "correct_streak": 0,
+                "total_correct": 0,
+                "total_incorrect": 0,
+                "last_result": None,
+            }
+        return dict(row)
+
     def _chapter_filter_sql(self, selected_chapters: list[str]) -> tuple[str, list[Any]]:
         if not selected_chapters:
             return "", []
@@ -454,16 +482,20 @@ class Database:
                     current_card_id,
                     current_payload_json,
                     queue_json,
+                    total_cards,
+                    answered_cards,
                     started_at,
                     updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                     mode = excluded.mode,
                     training_mode = excluded.training_mode,
                     current_card_id = excluded.current_card_id,
                     current_payload_json = excluded.current_payload_json,
                     queue_json = excluded.queue_json,
+                    total_cards = excluded.total_cards,
+                    answered_cards = excluded.answered_cards,
                     started_at = excluded.started_at,
                     updated_at = excluded.updated_at
                 """,
@@ -474,6 +506,8 @@ class Database:
                     current_payload["card_id"],
                     self._dump_json(current_payload),
                     self._dump_json(queue),
+                    len(payloads),
+                    0,
                     now,
                     now,
                 ),
@@ -734,6 +768,8 @@ class Database:
             "current_card_id": current_payload["card_id"] if current_payload else None,
             "current_payload": current_payload,
             "queue": queue,
+            "total_cards": row["total_cards"] or 0,
+            "answered_cards": row["answered_cards"] or 0,
             "started_at": row["started_at"],
             "updated_at": row["updated_at"],
         }
@@ -775,12 +811,16 @@ class Database:
         queue: list[dict[str, Any]],
         mode: str | None = None,
         training_mode: str | None = None,
+        answered_cards: int | None = None,
+        total_cards: int | None = None,
     ) -> None:
         session = self.get_session(user_id)
         if session is None:
             return
         new_mode = mode or session["mode"]
         new_training_mode = training_mode or session["training_mode"]
+        new_answered_cards = session["answered_cards"] if answered_cards is None else answered_cards
+        new_total_cards = session["total_cards"] if total_cards is None else total_cards
         with self._lock, self.conn:
             self.conn.execute(
                 """
@@ -791,6 +831,8 @@ class Database:
                     current_card_id = ?,
                     current_payload_json = ?,
                     queue_json = ?,
+                    total_cards = ?,
+                    answered_cards = ?,
                     updated_at = ?
                 WHERE user_id = ?
                 """,
@@ -800,6 +842,8 @@ class Database:
                     current_payload["card_id"] if current_payload else None,
                     self._dump_json(current_payload) if current_payload else None,
                     self._dump_json(queue),
+                    new_total_cards,
+                    new_answered_cards,
                     self._now(),
                     user_id,
                 ),
@@ -993,6 +1037,18 @@ class Database:
             (user_id,),
         ).fetchone()
 
+        review_ready = self.conn.execute(
+            f"""
+            SELECT COUNT(*) AS review_ready
+            FROM cards c
+            LEFT JOIN user_card_progress p
+                ON p.card_id = c.id AND p.user_id = ?
+            WHERE (COALESCE(p.total_correct, 0) + COALESCE(p.total_incorrect, 0)) > 0
+            {chapter_sql}
+            """,
+            (user_id, *chapter_params),
+        ).fetchone()
+
         chapter_rows = self.conn.execute(
             f"""
             SELECT
@@ -1035,6 +1091,7 @@ class Database:
             "new_cards": new_cards,
             "correct_answers": answer_totals["correct_answers"] or 0,
             "incorrect_answers": answer_totals["incorrect_answers"] or 0,
+            "review_ready": review_ready["review_ready"] or 0,
             "points": settings["points"],
             "streak": settings["streak"],
             "best_streak": settings["best_streak"],
