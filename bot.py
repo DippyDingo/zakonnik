@@ -17,6 +17,7 @@ from database import Database
 
 
 LOGGER = logging.getLogger(__name__)
+CHAPTERS_PAGE_SIZE = 5
 
 TRAINING_MODE_LABELS = {
     "flashcard": "Обычные карточки",
@@ -172,18 +173,41 @@ def reset_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str]) -> InlineKeyboardMarkup:
+def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str], page: int = 0) -> InlineKeyboardMarkup:
+    total = len(chapters)
+    total_pages = max((total + CHAPTERS_PAGE_SIZE - 1) // CHAPTERS_PAGE_SIZE, 1)
+    current_page = min(max(page, 0), total_pages - 1)
+    start = current_page * CHAPTERS_PAGE_SIZE
+    end = start + CHAPTERS_PAGE_SIZE
+    page_chapters = chapters[start:end]
+
     rows: list[list[InlineKeyboardButton]] = []
-    for chapter in chapters:
+    for chapter in page_chapters:
         marker = "✅" if chapter["chapter_code"] in selected else "◻️"
         rows.append(
             [
                 InlineKeyboardButton(
                     f"{marker} Глава {chapter['chapter_code']}. {chapter['chapter_title']}",
-                    callback_data=f"chapter:toggle:{chapter['chapter_code']}",
+                    callback_data=f"chapter:toggle:{current_page}:{chapter['chapter_code']}",
                 )
             ]
         )
+
+    if total_pages > 1:
+        nav_row: list[InlineKeyboardButton] = []
+        if current_page > 0:
+            nav_row.append(
+                InlineKeyboardButton("⬅️ Назад", callback_data=f"chapter:page:{current_page - 1}")
+            )
+        nav_row.append(
+            InlineKeyboardButton(f"📄 {current_page + 1}/{total_pages}", callback_data="chapter:noop")
+        )
+        if current_page < total_pages - 1:
+            nav_row.append(
+                InlineKeyboardButton("Вперёд ➡️", callback_data=f"chapter:page:{current_page + 1}")
+            )
+        rows.append(nav_row)
+
     rows.extend(
         [
             [
@@ -325,8 +349,16 @@ class CriminalCodeBot:
                 return
             if data.startswith("chapter:toggle:"):
                 await query.answer()
-                chapter_code = data.rsplit(":", maxsplit=1)[1]
-                await self.toggle_chapter(query, chapter_code)
+                _, _, page_raw, chapter_code = data.split(":", maxsplit=3)
+                await self.toggle_chapter(query, chapter_code, int(page_raw))
+                return
+            if data.startswith("chapter:page:"):
+                await query.answer()
+                page = int(data.rsplit(":", maxsplit=1)[1])
+                await self.show_chapters(query, page=page)
+                return
+            if data == "chapter:noop":
+                await query.answer()
                 return
             if data == "chapter:all":
                 await query.answer("Выбраны все главы")
@@ -512,12 +544,14 @@ class CriminalCodeBot:
             reply_markup=training_mode_keyboard(session_mode, settings),
         )
 
-    async def show_chapters(self, query) -> None:
+    async def show_chapters(self, query, page: int = 0) -> None:
         user_id = query.from_user.id
         settings = self.db.get_user_settings(user_id)
         chapters = [dict(row) for row in self.db.list_chapters()]
         selected = settings["selected_chapters"]
         count = len(selected)
+        total_pages = max((len(chapters) + CHAPTERS_PAGE_SIZE - 1) // CHAPTERS_PAGE_SIZE, 1)
+        current_page = min(max(page, 0), total_pages - 1)
         if selected:
             preview = ", ".join(f"гл. {code}" for code in selected[:5])
             if len(selected) > 5:
@@ -528,11 +562,12 @@ class CriminalCodeBot:
             "🗂️ Выбор глав\n\n"
             f"Выбрано: {count if count else 'все'}\n"
             f"Сейчас в подборке: {preview}\n\n"
+            f"Страница: {current_page + 1}/{total_pages}\n\n"
             "Отметьте нужные главы. Если ничего не выбрано, бот использует все карточки.",
-            reply_markup=chapter_keyboard(chapters, selected),
+            reply_markup=chapter_keyboard(chapters, selected, page=current_page),
         )
 
-    async def toggle_chapter(self, query, chapter_code: str) -> None:
+    async def toggle_chapter(self, query, chapter_code: str, page: int = 0) -> None:
         user_id = query.from_user.id
         settings = self.db.get_user_settings(user_id)
         selected = set(settings["selected_chapters"])
@@ -541,7 +576,7 @@ class CriminalCodeBot:
         else:
             selected.add(chapter_code)
         self.db.set_selected_chapters(user_id, list(selected))
-        await self.show_chapters(query)
+        await self.show_chapters(query, page=page)
 
     async def show_settings(self, query) -> None:
         user_id = query.from_user.id
