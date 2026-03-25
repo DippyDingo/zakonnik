@@ -124,7 +124,8 @@
 - `bot.py` — Telegram-логика и inline UI
 - `database.py` — SQLite-схема, миграции и бизнес-логика прогресса
 - `config.py` — загрузка настроек из `.env`
-- `data/cards.json` — стартовый набор карточек
+- `data/cards.json` — основной набор карточек, отсортированный по главам и статьям
+- `data/cards_navigation.md` — навигационный индекс по главам и статьям для удобного редактирования
 
 ## Быстрый запуск
 
@@ -190,6 +191,12 @@ python app.py
 ## Как добавить свои карточки
 
 Бот загружает карточки из файла [data/cards.json](/C:/Users/acer/Desktop/zakonnik/data/cards.json) при запуске.
+
+Для удобства редактирования:
+
+- [data/cards.json](/C:/Users/acer/Desktop/zakonnik/data/cards.json) отсортирован по `chapter_code`, затем по `article`
+- [data/cards_navigation.md](/C:/Users/acer/Desktop/zakonnik/data/cards_navigation.md) показывает быстрый индекс по главам и статьям
+- комментарии внутрь JSON не добавляются, потому что обычный JSON их не поддерживает и бот не сможет прочитать файл
 
 Если вы хотите добавить свой набор карточек:
 
