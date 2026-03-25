@@ -1,0 +1,5 @@
+.env
+bot.log
+bot_data.sqlite3
+__pycache__/
+*.pyc
