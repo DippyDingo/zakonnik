@@ -215,8 +215,8 @@ def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str], page: 
                 InlineKeyboardButton("🧹 Очистить", callback_data="chapter:clear"),
             ],
             [
-                InlineKeyboardButton("💾 Сохранить", callback_data="chapter:save"),
-                InlineKeyboardButton("⬅️ Назад", callback_data="menu:root"),
+                InlineKeyboardButton("✅ Сохранить выбор", callback_data="chapter:save"),
+                InlineKeyboardButton("🏠 В меню", callback_data="menu:root"),
             ],
         ]
     )

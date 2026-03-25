@@ -2,6 +2,28 @@
 
 Готовый бот на `python-telegram-bot` с SQLite, карточками, ревизией, статистикой, настройками и ежедневными напоминаниями.
 
+## Скриншоты
+
+### Главное меню
+
+![Главное меню](docs/screenshots/main-menu.png)
+
+### Выбор режима тренировки
+
+![Выбор режима тренировки](docs/screenshots/training-mode.png)
+
+### Выбор формата ответа
+
+![Выбор формата ответа](docs/screenshots/answer-mode.png)
+
+### Настройки
+
+![Экран настроек](docs/screenshots/settings-screen.png)
+
+### Помощь
+
+![Экран помощи](docs/screenshots/help-screen.png)
+
 ## Что умеет
 
 - Главное меню с современным inline UI и быстрым доступом к основным действиям
