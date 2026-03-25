@@ -3,3 +3,4 @@ bot.log
 bot_data.sqlite3
 __pycache__/
 *.pyc
+data/добавь.txt
