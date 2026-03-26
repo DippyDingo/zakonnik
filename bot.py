@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import time
+from datetime import datetime, time
 from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -48,14 +48,13 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("▶️ Продолжить", callback_data="menu:continue"),
             ],
             [
-                InlineKeyboardButton("🔁 Ревизия", callback_data="menu:review"),
                 InlineKeyboardButton("🗂️ Выбрать главы", callback_data="menu:chapters"),
+                InlineKeyboardButton("📊 Статистика", callback_data="menu:stats"),
             ],
             [
-                InlineKeyboardButton("📊 Статистика", callback_data="menu:stats"),
                 InlineKeyboardButton("⚙️ Настройки", callback_data="menu:settings"),
+                InlineKeyboardButton("❓ Помощь", callback_data="menu:help"),
             ],
-            [InlineKeyboardButton("❓ Помощь", callback_data="menu:help")],
         ]
     )
 
@@ -215,7 +214,7 @@ def chapter_keyboard(chapters: list[dict[str, Any]], selected: list[str], page: 
                 InlineKeyboardButton("🧹 Очистить", callback_data="chapter:clear"),
             ],
             [
-                InlineKeyboardButton("✅ Сохранить выбор", callback_data="chapter:save"),
+                InlineKeyboardButton("💾 Сохранить", callback_data="chapter:save"),
                 InlineKeyboardButton("🏠 В меню", callback_data="menu:root"),
             ],
         ]
@@ -229,6 +228,22 @@ def finish_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton("🎯 Новая тренировка", callback_data="menu:start"),
                 InlineKeyboardButton("📊 Статистика", callback_data="menu:stats"),
+            ],
+            [InlineKeyboardButton("🏠 В меню", callback_data="menu:root")],
+        ]
+    )
+
+
+def stats_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("▶️ Продолжить", callback_data="menu:continue"),
+                InlineKeyboardButton("🔁 Ревизия", callback_data="menu:review"),
+            ],
+            [
+                InlineKeyboardButton("🗂️ Выбрать главы", callback_data="menu:chapters"),
+                InlineKeyboardButton("⚙️ Настройки", callback_data="menu:settings"),
             ],
             [InlineKeyboardButton("🏠 В меню", callback_data="menu:root")],
         ]
@@ -643,6 +658,60 @@ class CriminalCodeBot:
                 [[InlineKeyboardButton("🏠 В меню", callback_data="menu:root")]]
             ),
         )
+
+    async def show_stats(self, query) -> None:
+        user_id = query.from_user.id
+        stats = self.db.get_stats(user_id)
+        total_answers = stats["correct_answers"] + stats["incorrect_answers"]
+        success_rate = round((stats["correct_answers"] / total_answers) * 100) if total_answers else 0
+        overall_progress = round((stats["mastered"] / stats["total_cards"]) * 100) if stats["total_cards"] else 0
+
+        selected_count = len(stats["selected_chapters"])
+        if stats["selected_chapters"]:
+            selected_text = ", ".join(f"гл. {code}" for code in stats["selected_chapters"][:5])
+            if selected_count > 5:
+                selected_text = f"{selected_text} и ещё {selected_count - 5}"
+        else:
+            selected_text = "все главы"
+
+        chapter_lines = self.compose_chapter_summary(stats["chapters"])
+        daily_bar = self.progress_bar(
+            min(stats["today_correct"], stats["daily_target"]),
+            max(stats["daily_target"], 1),
+        )
+        last_activity = self.format_last_activity(stats.get("last_activity"))
+        recommendation = self.stats_recommendation(stats, success_rate)
+
+        text = (
+            "📊 Статистика\n\n"
+            f"{self.stats_headline(stats, success_rate)}\n\n"
+            "Прогресс\n"
+            f"• Всего карточек: {stats['total_cards']}\n"
+            f"• Изучено: {stats['mastered']} ({overall_progress}%)\n"
+            f"• В работе: {stats['learning']}\n"
+            f"• Новые: {stats['new_cards']}\n"
+            f"• Ждут ревизии: {stats['review_ready']}\n"
+            f"• Осталось пройти: {stats['remaining_cards']}\n\n"
+            "Ответы\n"
+            f"• Верных: {stats['correct_answers']}\n"
+            f"• Ошибок: {stats['incorrect_answers']}\n"
+            f"• Успешность: {success_rate}%\n"
+            f"• Карточек с ошибками: {stats['cards_with_errors']}\n"
+            f"• Серия сейчас: {stats['streak']}\n"
+            f"• Лучшая серия: {stats['best_streak']}\n"
+            f"• Баллы: {stats['points']}\n\n"
+            "Сегодня\n"
+            f"• Цель: {stats['today_correct']}/{stats['daily_target']}\n"
+            f"• Прогресс дня: {daily_bar}\n"
+            f"• Активные главы: {selected_text}\n"
+            f"• Последняя активность: {last_activity}\n\n"
+            "Главы\n"
+            + "\n".join(chapter_lines)
+            + "\n\n"
+            "Что дальше\n"
+            f"{recommendation}"
+        )
+        await query.edit_message_text(text, reply_markup=stats_keyboard())
 
     async def start_session(self, query, session_mode: str, training_mode: str) -> None:
         user_id = query.from_user.id
@@ -1091,6 +1160,72 @@ class CriminalCodeBot:
         clamped = min(max(current, 0), safe_total)
         filled = round((clamped / safe_total) * length)
         return "█" * filled + "░" * (length - filled)
+
+    def stats_headline(self, stats: dict[str, Any], success_rate: int) -> str:
+        if stats["review_ready"] >= max(stats["learning"], 3):
+            return "Есть хороший прогресс, и часть карточек уже просится на повторение."
+        if stats["cards_with_errors"] > 0:
+            return "Есть что закрепить: сложные карточки уже видны, и это хороший ориентир."
+        if stats["mastered"] and success_rate >= 80:
+            return "Хороший темп: материал закрепляется уверенно."
+        if stats["correct_answers"] == 0 and stats["incorrect_answers"] == 0:
+            return "Статистика появится после первых ответов. Можно начать с короткой тренировки."
+        return "Прогресс уже есть. Продолжайте в комфортном ритме."
+
+    def compose_chapter_summary(self, chapters: list[dict[str, Any]]) -> list[str]:
+        if not chapters:
+            return ["• Пока нет данных по выбранным главам."]
+
+        prepared: list[dict[str, Any]] = []
+        for item in chapters:
+            total_cards = item["total_cards"] or 0
+            mastered_cards = item["mastered_cards"] or 0
+            learning_cards = item["learning_cards"] or 0
+            error_cards = item.get("error_cards", 0) or 0
+            progress = round((mastered_cards / total_cards) * 100) if total_cards else 0
+            prepared.append(
+                {
+                    "chapter_code": item["chapter_code"],
+                    "total_cards": total_cards,
+                    "mastered_cards": mastered_cards,
+                    "learning_cards": learning_cards,
+                    "error_cards": error_cards,
+                    "progress": progress,
+                }
+            )
+
+        active = [item for item in prepared if item["mastered_cards"] or item["learning_cards"] or item["error_cards"]]
+        visible = active[:5] if active else prepared[:5]
+        lines = []
+        for item in visible:
+            mood = "почти готово" if item["progress"] >= 75 else "идёт работа" if item["progress"] >= 25 else "старт"
+            lines.append(
+                f"• Глава {item['chapter_code']}: {item['mastered_cards']}/{item['total_cards']} · {item['progress']}% · {mood}"
+            )
+        hidden = len(active if active else prepared) - len(visible)
+        if hidden > 0:
+            lines.append(f"• Ещё глав в подборке: {hidden}")
+        return lines
+
+    def stats_recommendation(self, stats: dict[str, Any], success_rate: int) -> str:
+        if stats["cards_with_errors"] > 0:
+            return "Есть карточки с ошибками — лучше сначала пройти ревизию и закрепить их."
+        if stats["review_ready"] >= max(3, stats["daily_target"] // 2):
+            return "Пора на ревизию: уже накопились карточки, которые стоит освежить."
+        if stats["new_cards"] > 0 and success_rate >= 70:
+            return "Хороший прогресс. Можно продолжить обучение и взять новые карточки."
+        if stats["learning"] > 0:
+            return "Сейчас полезнее продолжить обучение и добить карточки, которые уже в работе."
+        return "Подборка выглядит уверенно. Можно выбрать новую главу или устроить короткую ревизию."
+
+    def format_last_activity(self, raw_value: str | None) -> str:
+        if not raw_value:
+            return "ещё не было ответов"
+        try:
+            parsed = datetime.fromisoformat(raw_value)
+        except ValueError:
+            return raw_value
+        return parsed.strftime("%d.%m.%Y %H:%M")
 
     def difficulty_label(self, value: str | None) -> str:
         mapping = {

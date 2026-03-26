@@ -449,6 +449,15 @@ class Database:
         placeholders = ",".join("?" for _ in selected_chapters)
         return f" AND c.chapter_code IN ({placeholders})", list(selected_chapters)
 
+    def _training_mode_filter_sql(self, training_mode: str) -> tuple[str, list[Any]]:
+        if training_mode == CARD_TYPE_FLASHCARD:
+            return " AND COALESCE(c.card_type, 'flashcard') = ?", [CARD_TYPE_FLASHCARD]
+        if training_mode == CARD_TYPE_MULTIPLE:
+            return " AND COALESCE(c.card_type, 'flashcard') = ?", [CARD_TYPE_MULTIPLE]
+        if training_mode == CARD_TYPE_TRUE_FALSE:
+            return " AND COALESCE(c.card_type, 'flashcard') = ?", [CARD_TYPE_TRUE_FALSE]
+        return "", []
+
     def create_session(
         self,
         user_id: int,
@@ -526,6 +535,7 @@ class Database:
         selected_chapters = settings["selected_chapters"]
         session_size = settings["session_size"]
         chapter_sql, chapter_params = self._chapter_filter_sql(selected_chapters)
+        training_sql, training_params = self._training_mode_filter_sql(training_mode)
         options_enabled = settings["options_enabled"]
 
         if mode == "review":
@@ -570,10 +580,11 @@ class Database:
                 ON p.card_id = c.id AND p.user_id = ?
             WHERE {status_filter}
             {chapter_sql}
+            {training_sql}
             ORDER BY {order_sql}
             LIMIT ?
             """,
-            (user_id, *chapter_params, max(session_size * 8, 12)),
+            (user_id, *chapter_params, *training_params, max(session_size * 8, 12)),
         ).fetchall()
 
         payloads: list[dict[str, Any]] = []
@@ -599,9 +610,13 @@ class Database:
         card_type = card["card_type"] or CARD_TYPE_FLASHCARD
 
         if training_mode == "flashcard":
+            if card_type != CARD_TYPE_FLASHCARD:
+                return None
             return self._build_reveal_payload(card)
 
         if training_mode == "multiple_choice":
+            if card_type != CARD_TYPE_MULTIPLE:
+                return None
             return self._build_multiple_choice_payload(
                 card,
                 allow_generated=options_enabled,
@@ -609,6 +624,8 @@ class Database:
             )
 
         if training_mode == "true_false":
+            if card_type != CARD_TYPE_TRUE_FALSE:
+                return None
             return self._build_true_false_payload(card)
 
         if card_type == CARD_TYPE_MULTIPLE:
@@ -793,15 +810,66 @@ class Database:
         training_mode: str,
         user_id: int,
     ) -> dict[str, Any] | None:
+        settings = self.get_user_settings(user_id)
         if isinstance(value, dict):
-            return value
+            card_id = value.get("card_id")
+            if not isinstance(card_id, int):
+                return None
+            card = self.get_card(card_id)
+            if card is None:
+                return None
+            if self._payload_matches_training_mode(value, training_mode) and self._payload_is_structurally_valid(value):
+                return value
+            rebuilt = self._build_payload_for_card(card, training_mode, settings["options_enabled"])
+            if rebuilt is None:
+                return None
+            if "revealed" in value:
+                rebuilt["revealed"] = bool(value.get("revealed"))
+            return rebuilt
         if isinstance(value, int):
             card = self.get_card(value)
             if card is None:
                 return None
-            settings = self.get_user_settings(user_id)
             return self._build_payload_for_card(card, training_mode, settings["options_enabled"])
         return None
+
+    def _payload_matches_training_mode(self, payload: dict[str, Any], training_mode: str) -> bool:
+        presentation = payload.get("presentation_type")
+        if training_mode == CARD_TYPE_FLASHCARD:
+            return presentation == CARD_TYPE_FLASHCARD
+        if training_mode == CARD_TYPE_MULTIPLE:
+            return presentation == CARD_TYPE_MULTIPLE
+        if training_mode == CARD_TYPE_TRUE_FALSE:
+            return presentation == CARD_TYPE_TRUE_FALSE
+        return presentation in {
+            CARD_TYPE_FLASHCARD,
+            CARD_TYPE_MULTIPLE,
+            CARD_TYPE_TRUE_FALSE,
+            CARD_TYPE_SCENARIO,
+            "scenario_choice",
+        }
+
+    def _payload_is_structurally_valid(self, payload: dict[str, Any]) -> bool:
+        presentation = payload.get("presentation_type")
+        if presentation in {CARD_TYPE_MULTIPLE, "scenario_choice"}:
+            options = payload.get("options")
+            correct_option = payload.get("correct_option")
+            return (
+                isinstance(options, list)
+                and len(options) >= 2
+                and isinstance(correct_option, int)
+                and 0 <= correct_option < len(options)
+            )
+        if presentation == CARD_TYPE_TRUE_FALSE:
+            options = payload.get("options")
+            correct_option = payload.get("correct_option")
+            return (
+                isinstance(options, list)
+                and len(options) == 2
+                and isinstance(correct_option, int)
+                and correct_option in (0, 1)
+            )
+        return isinstance(payload.get("card_id"), int)
 
     def update_session(
         self,
@@ -1027,14 +1095,17 @@ class Database:
         ).fetchone()
 
         answer_totals = self.conn.execute(
-            """
+            f"""
             SELECT
-                SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
-                SUM(CASE WHEN is_correct = 0 THEN 1 ELSE 0 END) AS incorrect_answers
-            FROM answer_history
-            WHERE user_id = ?
+                SUM(CASE WHEN h.is_correct = 1 THEN 1 ELSE 0 END) AS correct_answers,
+                SUM(CASE WHEN h.is_correct = 0 THEN 1 ELSE 0 END) AS incorrect_answers,
+                MAX(h.answered_at) AS last_activity
+            FROM answer_history h
+            JOIN cards c ON c.id = h.card_id
+            WHERE h.user_id = ?
+            {chapter_sql}
             """,
-            (user_id,),
+            (user_id, *chapter_params),
         ).fetchone()
 
         review_ready = self.conn.execute(
@@ -1049,6 +1120,18 @@ class Database:
             (user_id, *chapter_params),
         ).fetchone()
 
+        cards_with_errors = self.conn.execute(
+            f"""
+            SELECT COUNT(*) AS cards_with_errors
+            FROM cards c
+            LEFT JOIN user_card_progress p
+                ON p.card_id = c.id AND p.user_id = ?
+            WHERE COALESCE(p.total_incorrect, 0) > 0
+            {chapter_sql}
+            """,
+            (user_id, *chapter_params),
+        ).fetchone()
+
         chapter_rows = self.conn.execute(
             f"""
             SELECT
@@ -1056,7 +1139,8 @@ class Database:
                 c.chapter_title,
                 COUNT(*) AS total_cards,
                 SUM(CASE WHEN COALESCE(p.status, 'new') = 'mastered' THEN 1 ELSE 0 END) AS mastered_cards,
-                SUM(CASE WHEN COALESCE(p.status, 'new') = 'learning' THEN 1 ELSE 0 END) AS learning_cards
+                SUM(CASE WHEN COALESCE(p.status, 'new') = 'learning' THEN 1 ELSE 0 END) AS learning_cards,
+                SUM(CASE WHEN COALESCE(p.total_incorrect, 0) > 0 THEN 1 ELSE 0 END) AS error_cards
             FROM cards c
             LEFT JOIN user_card_progress p
                 ON p.card_id = c.id AND p.user_id = ?
@@ -1069,29 +1153,35 @@ class Database:
         ).fetchall()
 
         today_correct = self.conn.execute(
-            """
+            f"""
             SELECT COUNT(*) AS today_correct
-            FROM answer_history
-            WHERE user_id = ?
-              AND is_correct = 1
-              AND DATE(answered_at) = DATE('now', 'localtime')
+            FROM answer_history h
+            JOIN cards c ON c.id = h.card_id
+            WHERE h.user_id = ?
+              AND h.is_correct = 1
+              AND DATE(h.answered_at) = DATE('now', 'localtime')
+            {chapter_sql}
             """,
-            (user_id,),
+            (user_id, *chapter_params),
         ).fetchone()
 
         total_cards = totals["total_cards"] or 0
         mastered = totals["mastered"] or 0
         learning = totals["learning"] or 0
         new_cards = max(total_cards - mastered - learning, 0)
+        remaining_cards = max(total_cards - mastered, 0)
 
         return {
             "total_cards": total_cards,
             "mastered": mastered,
             "learning": learning,
             "new_cards": new_cards,
+            "remaining_cards": remaining_cards,
             "correct_answers": answer_totals["correct_answers"] or 0,
             "incorrect_answers": answer_totals["incorrect_answers"] or 0,
             "review_ready": review_ready["review_ready"] or 0,
+            "cards_with_errors": cards_with_errors["cards_with_errors"] or 0,
+            "last_activity": answer_totals["last_activity"],
             "points": settings["points"],
             "streak": settings["streak"],
             "best_streak": settings["best_streak"],
